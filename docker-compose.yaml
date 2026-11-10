@@ -1,0 +1,10 @@
+services:
+  fotocasa-scraper:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      # Optional — Fotocasa answered every request without one, so leave this unset.
+      # - FOTOCASA_PROXY=http://user:pass@host:port
