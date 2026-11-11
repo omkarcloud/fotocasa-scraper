@@ -808,6 +808,11 @@ def parse_detail(html, property_id=None, canonical_url=None):
     other = legacy.get("otherFeatures") or {}
     ids = legacy.get("otherFeaturesIds") if isinstance(legacy.get("otherFeaturesIds"), list) else list(other)
     amenities = _amenities_from_ids(ids, other)
+    if not amenities:
+        # a new-build unit's page leaves the legacy table empty
+        # (otherFeaturesIds false); its amenity ids ride unitDetail.extras
+        amenities = _amenities_from_ids([e.get("id") for e in (props.get("unitDetail") or {}).get("extras") or []
+                                         if isinstance(e, dict)])
     if _yes(typed.get("ELEVATOR")) and "lift" not in amenities:
         amenities.append("lift")
     rooms = _positive(legacy_features.get("rooms"))

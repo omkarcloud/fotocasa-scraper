@@ -367,6 +367,10 @@ def test_detail_new_build_unit():
     assert d["new_development"]["id"] == "20678485" and d["new_development"]["name"] == "RESIDENCIAL AZORES"
     assert d["new_development"]["unit_reference"] == "P1 bajo E"
     assert d["condition"] == "new_build" and d["property_subtype"] == "ground_floor"
+    # the unit page's legacy amenity table is empty; the ids come from unitDetail.extras
+    assert d["amenities"] == ["lift", "storage_room", "community_parking", "air_conditioning", "armored_door",
+                              "community_pool", "community_area", "gym", "childrens_area", "ensuite_bathroom",
+                              "terrace"]
 
 
 @pytest.mark.parametrize("raw,expected", [
@@ -611,3 +615,23 @@ def test_block_detection():
     assert F.is_block_page("<html><head><title>Pardon Our Interruption</title>") is True
     assert F.is_block_page(fixture("detail_sale_184433815.html")) is False
     assert F.page_title("<title> x </title>") == "x"
+
+
+# ---- the gateway's result window (no network) ---------------------------------------------------
+
+def test_gateway_window_blanks_the_fallback_page(monkeypatch):
+    """Past ~9,970 rows the gateway answers with an unrelated 30-row fallback
+    page; the search must come back empty there and stop paging before it."""
+    from fotocasa import api
+
+    monkeypatch.setattr(api, "fetch_search", lambda params: params)
+    monkeypatch.setattr(api.parsers, "parse_search",
+                        lambda raw, language: {"count": 12703, "results": [{"id": str(raw["pageNumber"])}]})
+    madrid = "724,14,28,173,0,28079,0,0,0"
+    assert api._gateway_search(madrid, "buy", "homes", 99, 100, "es", {})["results"] == [{"id": "99"}]
+    assert api._gateway_search(madrid, "buy", "homes", 100, 100, "es", {})["results"] == []
+    assert api._gateway_search(madrid, "buy", "homes", 332, 30, "es", {})["results"] == [{"id": "332"}]
+    assert api._gateway_search(madrid, "buy", "homes", 25, 400, "es", {})["results"] == []
+    assert api._pagination(12703, 1, 100, refs.GATEWAY_WINDOW // 100)["total_pages"] == 99
+    assert api._pagination(12703, 1, 400, refs.GATEWAY_WINDOW // 400)["total_pages"] == 24
+    assert api._pagination(250, 1, 100, refs.GATEWAY_WINDOW // 100)["total_pages"] == 3

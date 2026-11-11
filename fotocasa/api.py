@@ -10,7 +10,7 @@ parse per agency.
 
 Search flows (fotocasa/fetch.py has the surfaces):
   * a place name or a combined location id -> the JSON gateway (any page
-    size up to 400, every filter)
+    size up to 400, every filter, the first 9,960 rows of a search)
   * a street / urbanisation area slug, or a pasted search link -> the
     server-rendered page that carries the same answer (30 a page, the
     link's own filters + the request's)
@@ -97,8 +97,10 @@ def _gateway_search(combined, transaction, property_type, page, size, language, 
         params["clientId"] = client_id
     params.update(_filter_params(filters))
     parsed = parsers.parse_search(fetch_search(params), language)
-    if parsed["count"] and page > math.ceil(parsed["count"] / size):
-        parsed["results"] = []          # the gateway wraps past the end
+    if (parsed["count"] and page > math.ceil(parsed["count"] / size)) or page * size > refs.GATEWAY_WINDOW:
+        # the gateway wraps past the end, and past its result window it
+        # serves an unrelated fallback page
+        parsed["results"] = []
     return parsed
 
 
@@ -226,7 +228,7 @@ def _properties_search(location, transaction, property_type, page, per_page, lan
         "new_developments": parsed["new_developments"],
         "facets": parsed["facets"],
         "mean_prices": None,
-        "pagination": _pagination(parsed["count"], page, per_page),
+        "pagination": _pagination(parsed["count"], page, per_page, refs.GATEWAY_WINDOW // per_page),
     }
 
 
@@ -379,7 +381,7 @@ def _agency_listings(agency, transaction, property_type, location, page, per_pag
         "location": location,
         "filters": _echo_filters(filters),
         "results": results,
-        "pagination": _pagination(count, page, size),
+        "pagination": _pagination(count, page, size, refs.GATEWAY_WINDOW // size),
     }
 
 

@@ -33,6 +33,9 @@ SEARCH_GATEWAY = "https://search.gw.fotocasa.es"  # /v1/suggest
 CURRENCY = "EUR"
 ITEMS_PER_PAGE = 30          # the site's own page size (HTML pages always; the gateway's default)
 MAX_PAGE_SIZE = 400          # the gateway honours size up to 400 (500 falls back to 30; research 2026-11-07)
+GATEWAY_WINDOW = 9960        # the gateway serves rows 1-9,960 of a search; a page ending past ~9,970 comes back
+                             # as an unrelated 30-row fallback page (probed 2026-11-10: page 99 x 100 ok,
+                             # 100 x 100 / 25 x 400 / 333 x 30 fallback)
 HTML_MAX_PAGES = 333         # the HTML list pages stop at 10,000 rows (page 334 serves page 333 again)
 DIRECTORY_ITEMS_PER_PAGE = 15
 AGENCY_PAGE_ITEMS = 15       # the minisite's own listing page
